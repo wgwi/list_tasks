@@ -6,6 +6,5 @@ defmodule Feedback.Result do
      :error: Any runtime errors or exceptions.
      :reason: Additional information about the failure (e.g., "command not found").
   """
-  defstruct status: :ok, label: nil, output: nil, error: nil, reason: nil
+  defstruct status: :ok, label: nil, output: nil, error: nil, reason: nil, feedback_mod: nil
 end
-
