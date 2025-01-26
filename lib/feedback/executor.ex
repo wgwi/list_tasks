@@ -9,7 +9,7 @@ defmodule Feedback.Executor do
     end)
 
     Enum.each(tasks, fn task ->
-      result = Task.await(task)
+      result = Task.await(task, 60_000)
 
       IO.puts("\n--- Command Result: #{result.label} ---")
       handle_result(result)
@@ -18,7 +18,6 @@ defmodule Feedback.Executor do
 
   defp execute_command(%Command{label: label, command: command, args: args, feedback_mod: feedback_mod}) do
     try do
-      # Execute the command
       case Porcelain.exec(command, args) do
         %Porcelain.Result{out: out, err: err, status: status} ->
           # Handle non-zero exit statuses as errors
@@ -28,22 +27,33 @@ defmodule Feedback.Executor do
             %Result{status: :failure, label: label, output: out, error: err, reason: "other status", feedback_mod: feedback_mod}
           end
 
-        # Catch-all for unexpected Porcelain behaviors
-        other ->
-          %Result{status: :error, 
-                  label: label, 
-                  error: other, 
-                  reason: "Unexpected behavior",
-                  feedback_mod: feedback_mod}
+      {:error, reason} ->
+        %Feedback.Result{
+          status: :error,
+          label: label,
+          error: to_string(reason),
+          reason: "Command execution failed",
+          feedback_mod: feedback_mod
+        }
+
+      other ->
+          %Feedback.Result{
+          status: :error,
+          label: label,
+          error: other,
+          reason: "Unexpected Porcelain behavior",
+          feedback_mod: feedback_mod
+        }
       end
     rescue
-      exception ->
-        # Handle runtime exceptions (e.g., command not found)
-        %Result{status: :error, 
-                label: label, 
-                error: Exception.message(exception), 
-                reason: "Execution error",
-                feedback_mod: feedback_mod}
+        exception ->
+            %Feedback.Result{
+                status: :error,
+                label: label,
+                error: Exception.message(exception),
+                reason: "Command not found or execution error",
+                feedback_mod: feedback_mod
+             }
     end
   end
 
